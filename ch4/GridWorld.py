@@ -66,17 +66,93 @@ def PolicyIteration(grid, V, P):
         if policy_change == 0.0:
             break
             
-def ValueIteration(grid, V, P):
-    pass
+def ValueIteration(grid, V, P, discount):
+    Vnext = np.zeros(shape=V.shape)
+    n_iteration = 0
+    while True:
+        delta = 0.0
+        n_iteration += 1
+        for index, x in np.ndenumerate(grid):
+            Vnext[index] = 0.0
+            if grid[index]["is_dest"] == 1:
+                continue
+            v = np.array( list(map(lambda z: V[grid[index]["paths"][z][0]], range(4))) )
+            r = np.array( list(map(lambda z: grid[index]["paths"][z][1], range(4))) )
+            v = r+discount*v
+            winners = np.argwhere(v == np.amax(v)).flatten().tolist()
+            p = 1.0/len(winners)
+            pnew = np.array([0.0]*4)
+            for i in winners:
+                pnew[i] = p
+            P[index] = pnew
+            Vnext[index] = np.inner(P[index], v)
+            delta = max(delta, abs(V[index]-Vnext[index]))
+        #print(Vnext)
+        np.copyto(V, Vnext)
+        print(V)
+        print(P)
+        print(delta)
+        if delta < THETA:
+            break
+    return n_iteration
+    
+def ValueIterationInplace(grid, V, P, discount):
+    n_iteration = 0
+    while True:
+        delta = 0.0
+        n_iteration += 1
+        for index, x in np.ndenumerate(grid):
+            if grid[index]["is_dest"] == 1:
+                continue
+            v = np.array( list(map(lambda z: V[grid[index]["paths"][z][0]], range(4))) )
+            r = np.array( list(map(lambda z: grid[index]["paths"][z][1], range(4))) )
+            v = r+discount*v
+            winners = np.argwhere(v == np.amax(v)).flatten().tolist()
+            p = 1.0/len(winners)
+            pnew = np.array([0.0]*4)
+            for i in winners:
+                pnew[i] = p
+            P[index] = pnew
+            Vnext = np.inner(P[index], v)
+            delta = max(delta, abs(V[index]-Vnext))
+            V[index] = Vnext
+        print(V)
+        print(P)
+        print(delta)
+        if delta < THETA:
+            break
+    return n_iteration   
+    
+def TestPolicyIteration(grid):
+    print(" --- PolicyIteration start ---")
+    V = np.zeros(shape=grid.shape)
+    print(V)
+    P = initPolicy(grid.shape)
+    print(P)
+    PolicyIteration(grid, V, P)
+    
+def TestValueIteration(grid):
+    print(" --- ValueIteration start ---")
+    V = np.zeros(shape=grid.shape)
+    print(V)
+    P = initPolicy(grid.shape)
+    print(P)
+    ValueIteration(grid, V, P, 0.9)
+    
+def TestValueIterationInplace(grid):
+    print(" --- Inplace ValueIteration start ---")
+    V = np.zeros(shape=grid.shape)
+    print(V)
+    P = initPolicy(grid.shape)
+    print(P)
+    ValueIterationInplace(grid, V, P, 0.9)
     
 if __name__ == "__main__":
     path= sys.argv[1] #normal set
     grid = readGrid(path)
     print("grid:")
     print(grid)
-    V = np.zeros(shape=grid.shape)
-    print(V)
-    P = initPolicy(grid.shape)
-    print(P)
-    PolicyIteration(grid, V, P)
+    TestPolicyIteration(grid)
+    TestValueIteration(grid)
+    TestValueIterationInplace(grid)
     
